@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worship Vocal AI Coach - System Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a3e 50%, #0a1628 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5, #00d2ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.2em;
+        }
+
+        /* Flow Diagram Styles */
+        .flow-section {
+            margin-bottom: 60px;
+        }
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            padding-left: 15px;
+            border-left: 4px solid #3a7bd5;
+        }
+
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .flow-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px 35px;
+            text-align: center;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .flow-box:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 210, 255, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.2);
+        }
+        .flow-box.input {
+            background: linear-gradient(135deg, rgba(72, 219, 251, 0.2), rgba(58, 123, 213, 0.2));
+            border-color: #48dbfb;
+        }
+        .flow-box.process {
+            background: linear-gradient(135deg, rgba(162, 155, 254, 0.2), rgba(116, 185, 255, 0.2));
+            border-color: #a29bfe;
+        }
+        .flow-box.ai {
+            background: linear-gradient(135deg, rgba(253, 203, 110, 0.2), rgba(255, 159, 67, 0.2));
+            border-color: #fdcb6e;
+        }
+        .flow-box.output {
+            background: linear-gradient(135deg, rgba(85, 239, 196, 0.2), rgba(0, 206, 201, 0.2));
+            border-color: #55efc4;
+        }
+
+        .flow-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .flow-label {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        .flow-sublabel {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #555;
+        }
+        .arrow-down {
+            font-size: 2.5em;
+            color: #555;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .feature-item .icon {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        .feature-item .label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* MBTI Grid */
+        .mbti-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .mbti-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .mbti-card:hover {
+            transform: scale(1.05);
+        }
+        .mbti-card.st { border-color: #ff6b6b; }
+        .mbti-card.wl { border-color: #48dbfb; }
+        .mbti-card.pa { border-color: #ff9f43; }
+        .mbti-card.in { border-color: #a29bfe; }
+        .mbti-card.jo { border-color: #feca57; }
+        .mbti-card.so { border-color: #5f27cd; }
+
+        .mbti-type {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .mbti-name {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .mbti-desc {
+            font-size: 0.85em;
+            color: #888;
+        }
+        .mbti-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        /* DNA Section */
+        .dna-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        .dna-item {
+            text-align: center;
+        }
+        .dna-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            border: 3px solid;
+        }
+        .dna-circle.warmth { border-color: #ff6b6b; background: rgba(255,107,107,0.2); }
+        .dna-circle.power { border-color: #a29bfe; background: rgba(162,155,254,0.2); }
+        .dna-circle.stability { border-color: #48dbfb; background: rgba(72,219,251,0.2); }
+        .dna-circle.expression { border-color: #55efc4; background: rgba(85,239,196,0.2); }
+        .dna-circle.groove { border-color: #feca57; background: rgba(254,202,87,0.2); }
+        .dna-circle.intimacy { border-color: #fd79a8; background: rgba(253,121,168,0.2); }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .tech-category {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .tech-category h4 {
+            color: #48dbfb;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tech-tag {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+            padding: 30px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+        }
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .pipeline-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            background: linear-gradient(135deg, rgba(0,210,255,0.3), rgba(58,123,213,0.3));
+            border: 2px solid rgba(0,210,255,0.5);
+        }
+        .pipeline-label {
+            font-size: 0.85em;
+            color: #aaa;
+            text-align: center;
+            max-width: 100px;
+        }
+        .pipeline-arrow {
+            font-size: 1.5em;
+            color: #555;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .mbti-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .flow-row {
+                flex-direction: column;
+            }
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Worship Vocal AI Coach</h1>
+        <p class="subtitle">System Architecture & How It Works</p>
+
+        <!-- Main Flow -->
+        <div class="flow-section">
+            <h2 class="section-title">📊 System Overview</h2>
+
+            <div class="flow-container">
+                <!-- Input Layer -->
+                <div class="flow-row">
+                    <div class="flow-box input">
+                        <div class="flow-icon">🎵</div>
+                        <div class="flow-label">Song A</div>
+                        <div class="flow-sublabel">느린 곡 (Slow Ballad)</div>
+                    </div>
+                    <div class="flow-box input">
+                        <div class="flow-icon">🎵</div>
+                        <div class="flow-label">Song B</div>
+                        <div class="flow-sublabel">빠른 곡 (Fast Upbeat)</div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- Audio Input -->
+                <div class="flow-box input" style="min-width: 400px;">
+                    <div class="flow-icon">🔊</div>
+                    <div class="flow-label">Audio Input</div>
+                    <div class="flow-sublabel">MP3, WAV, M4A 또는 YouTube URL</div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- Vocal Separation -->
+                <div class="flow-box process">
+                    <div class="flow-icon">🎭</div>
+                    <div class="flow-label">Vocal Separation</div>
+                    <div class="flow-sublabel">Demucs / Spleeter (Optional)</div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- Feature Extraction -->
+                <div class="flow-box process" style="min-width: 500px;">
+                    <div class="flow-icon">📊</div>
+                    <div class="flow-label">Audio Feature Extraction</div>
+                    <div class="flow-sublabel">librosa 기반 음성 분석</div>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <div class="icon">🎹</div>
+                            <div class="label">Pitch</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="icon">📈</div>
+                            <div class="label">Dynamics</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="icon">🎨</div>
+                            <div class="label">Timbre</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="icon">〰️</div>
+                            <div class="label">Vibrato</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="icon">🥁</div>
+                            <div class="label">Rhythm</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="icon">💨</div>
+                            <div class="label">Breath</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- Dual Core Analysis -->
+                <div class="flow-box ai" style="min-width: 450px;">
+                    <div class="flow-icon">🧬</div>
+                    <div class="flow-label">Dual-Core Analysis Engine</div>
+                    <div class="flow-sublabel">두 곡 교차 비교 분석</div>
+                    <div class="flow-row" style="margin-top: 15px; gap: 15px;">
+                        <div class="flow-box" style="min-width: 120px; padding: 15px;">
+                            <div class="flow-label" style="font-size: 0.9em;">공통 강점</div>
+                            <div class="flow-sublabel">THE SIGNATURE</div>
+                        </div>
+                        <div class="flow-box" style="min-width: 120px; padding: 15px;">
+                            <div class="flow-label" style="font-size: 0.9em;">공통 약점</div>
+                            <div class="flow-sublabel">HIDDEN ENEMY</div>
+                        </div>
+                        <div class="flow-box" style="min-width: 120px; padding: 15px;">
+                            <div class="flow-label" style="font-size: 0.9em;">스타일 차이</div>
+                            <div class="flow-sublabel">COMPARISON</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- AI Enhancement -->
+                <div class="flow-box ai">
+                    <div class="flow-icon">🤖</div>
+                    <div class="flow-label">Claude AI Enhancement</div>
+                    <div class="flow-sublabel">Persona & Coaching 생성</div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <!-- Output -->
+                <div class="flow-box output" style="min-width: 500px;">
+                    <div class="flow-icon">📋</div>
+                    <div class="flow-label">Analysis Results</div>
+                    <div class="flow-row" style="margin-top: 15px; gap: 10px;">
+                        <div class="flow-box output" style="min-width: 100px; padding: 12px;">
+                            <div>🎭</div>
+                            <div style="font-size: 0.8em;">Persona</div>
+                        </div>
+                        <div class="flow-box output" style="min-width: 100px; padding: 12px;">
+                            <div>📊</div>
+                            <div style="font-size: 0.8em;">MBTI</div>
+                        </div>
+                        <div class="flow-box output" style="min-width: 100px; padding: 12px;">
+                            <div>🧬</div>
+                            <div style="font-size: 0.8em;">DNA</div>
+                        </div>
+                        <div class="flow-box output" style="min-width: 100px; padding: 12px;">
+                            <div>⭐</div>
+                            <div style="font-size: 0.8em;">Radar</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MBTI Types -->
+        <div class="flow-section">
+            <h2 class="section-title">🎭 Vocal MBTI - 6 Types</h2>
+
+            <div class="mbti-grid">
+                <div class="mbti-card st">
+                    <div class="mbti-icon">📖</div>
+                    <div class="mbti-type" style="color: #ff6b6b;">ST</div>
+                    <div class="mbti-name">The Storyteller</div>
+                    <div class="mbti-desc">말하듯 전하는 진정성<br>따뜻한 중저음</div>
+                </div>
+                <div class="mbti-card wl">
+                    <div class="mbti-icon">⚓</div>
+                    <div class="mbti-type" style="color: #48dbfb;">WL</div>
+                    <div class="mbti-name">Worship Leader</div>
+                    <div class="mbti-desc">안정적 리딩<br>균형 잡힌 테크닉</div>
+                </div>
+                <div class="mbti-card pa">
+                    <div class="mbti-icon">🔥</div>
+                    <div class="mbti-type" style="color: #ff9f43;">PA</div>
+                    <div class="mbti-name">The Passionate</div>
+                    <div class="mbti-desc">폭발적 감정 표현<br>강렬한 고음</div>
+                </div>
+                <div class="mbti-card in">
+                    <div class="mbti-icon">🕊️</div>
+                    <div class="mbti-type" style="color: #a29bfe;">IN</div>
+                    <div class="mbti-name">The Intimate</div>
+                    <div class="mbti-desc">속삭이듯 친밀함<br>섬세한 표현</div>
+                </div>
+                <div class="mbti-card jo">
+                    <div class="mbti-icon">☀️</div>
+                    <div class="mbti-type" style="color: #feca57;">JO</div>
+                    <div class="mbti-name">The Joyful</div>
+                    <div class="mbti-desc">밝고 경쾌함<br>리듬감</div>
+                </div>
+                <div class="mbti-card so">
+                    <div class="mbti-icon">🎷</div>
+                    <div class="mbti-type" style="color: #5f27cd;">SO</div>
+                    <div class="mbti-name">The Soulful</div>
+                    <div class="mbti-desc">깊은 울림<br>그루브와 애드립</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6D DNA -->
+        <div class="flow-section">
+            <h2 class="section-title">🧬 6-Dimension Vocal DNA</h2>
+
+            <div class="dna-container">
+                <div class="dna-item">
+                    <div class="dna-circle warmth">🔥</div>
+                    <div class="flow-label">Warmth</div>
+                    <div class="flow-sublabel">따뜻함</div>
+                </div>
+                <div class="dna-item">
+                    <div class="dna-circle power">💪</div>
+                    <div class="flow-label">Power</div>
+                    <div class="flow-sublabel">파워</div>
+                </div>
+                <div class="dna-item">
+                    <div class="dna-circle stability">⚓</div>
+                    <div class="flow-label">Stability</div>
+                    <div class="flow-sublabel">안정성</div>
+                </div>
+                <div class="dna-item">
+                    <div class="dna-circle expression">🎭</div>
+                    <div class="flow-label">Expression</div>
+                    <div class="flow-sublabel">표현력</div>
+                </div>
+                <div class="dna-item">
+                    <div class="dna-circle groove">🎵</div>
+                    <div class="flow-label">Groove</div>
+                    <div class="flow-sublabel">그루브</div>
+                </div>
+                <div class="dna-item">
+                    <div class="dna-circle intimacy">💕</div>
+                    <div class="flow-label">Intimacy</div>
+                    <div class="flow-sublabel">친밀감</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Pipeline -->
+        <div class="flow-section">
+            <h2 class="section-title">⚙️ Processing Pipeline</h2>
+
+            <div class="pipeline">
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">📁</div>
+                    <div class="pipeline-label">Audio Load</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">🎭</div>
+                    <div class="pipeline-label">Vocal Separation</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">📊</div>
+                    <div class="pipeline-label">Feature Extract</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">🧮</div>
+                    <div class="pipeline-label">Classification</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">🤖</div>
+                    <div class="pipeline-label">AI Analysis</div>
+                </div>
+                <div class="pipeline-arrow">→</div>
+                <div class="pipeline-step">
+                    <div class="pipeline-icon">📋</div>
+                    <div class="pipeline-label">Report</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="flow-section">
+            <h2 class="section-title">🛠️ Technology Stack</h2>
+
+            <div class="tech-stack">
+                <div class="tech-category">
+                    <h4>🖥️ Frontend</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">Streamlit</span>
+                        <span class="tech-tag">Plotly</span>
+                        <span class="tech-tag">Matplotlib</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>🎵 Audio Processing</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">librosa</span>
+                        <span class="tech-tag">pydub</span>
+                        <span class="tech-tag">soundfile</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>🎭 Vocal Separation</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">Demucs</span>
+                        <span class="tech-tag">Spleeter</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>📥 Audio Extraction</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">yt-dlp</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>🤖 AI / ML</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">Claude API</span>
+                        <span class="tech-tag">Anthropic</span>
+                    </div>
+                </div>
+                <div class="tech-category">
+                    <h4>📄 Export</h4>
+                    <div class="tech-list">
+                        <span class="tech-tag">fpdf2</span>
+                        <span class="tech-tag">Pillow</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Flow -->
+        <div class="flow-section">
+            <h2 class="section-title">👤 User Journey</h2>
+
+            <div class="flow-container">
+                <div class="flow-row">
+                    <div class="flow-box input">
+                        <div class="flow-icon">👤</div>
+                        <div class="flow-label">User</div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <div class="flow-row">
+                    <div class="flow-box process">
+                        <div class="flow-icon">1️⃣</div>
+                        <div class="flow-label">단일 분석</div>
+                        <div class="flow-sublabel">Single Mode</div>
+                    </div>
+                    <span style="font-size: 1.5em; color: #888;">OR</span>
+                    <div class="flow-box process">
+                        <div class="flow-icon">2️⃣</div>
+                        <div class="flow-label">이중 분석</div>
+                        <div class="flow-sublabel">Dual Mode</div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <div class="flow-box">
+                    <div class="flow-icon">⏳</div>
+                    <div class="flow-label">Processing</div>
+                    <div class="flow-sublabel">분석 중... (2-5분)</div>
+                </div>
+
+                <div class="arrow-down">⬇️</div>
+
+                <div class="flow-row">
+                    <div class="flow-box output">
+                        <div class="flow-icon">🎭</div>
+                        <div class="flow-label">코칭</div>
+                    </div>
+                    <div class="flow-box output">
+                        <div class="flow-icon">📊</div>
+                        <div class="flow-label">분석</div>
+                    </div>
+                    <div class="flow-box output">
+                        <div class="flow-icon">🎵</div>
+                        <div class="flow-label">추천</div>
+                    </div>
+                    <div class="flow-box output">
+                        <div class="flow-icon">📋</div>
+                        <div class="flow-label">MBTI</div>
+                    </div>
+                    <div class="flow-box output">
+                        <div class="flow-icon">📥</div>
+                        <div class="flow-label">다운로드</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p style="font-size: 1.5em; margin-bottom: 10px;">🎤 Worship Vocal AI Coach</p>
+            <p>찬양 인도자들의 성장을 돕는 AI 보컬 코치</p>
+            <p style="margin-top: 20px; font-size: 0.9em;">
+                Made with ❤️ for Worship Leaders
+            </p>
+        </div>
+    </div>
+</body>
+</html>
